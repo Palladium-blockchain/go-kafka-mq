@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/IBM/sarama"
-	"github.com/Palladium-blockchain/go-kafka-mq/internal/scram"
+	"github.com/Palladium-blockchain/go-kafka-mq/v2/internal/scram"
 )
 
 func makeRetryConfig(maxAttempts int, initialBackoff, maxBackoff time.Duration) (RetryConfig, error) {

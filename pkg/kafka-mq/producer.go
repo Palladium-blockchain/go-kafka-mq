@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/IBM/sarama"
-	"github.com/Palladium-blockchain/go-kafka-mq/internal/retry"
+	"github.com/Palladium-blockchain/go-kafka-mq/v2/internal/retry"
 )
 
 var ErrProducerNotReady = errors.New("producer is not ready")

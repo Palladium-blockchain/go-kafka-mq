@@ -1,4 +1,4 @@
-module github.com/Palladium-blockchain/go-kafka-mq
+module github.com/Palladium-blockchain/go-kafka-mq/v2
 
 go 1.24.10
 
