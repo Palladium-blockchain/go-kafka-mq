@@ -9,7 +9,6 @@ import (
 
 	"github.com/IBM/sarama"
 	"github.com/Palladium-blockchain/go-kafka-mq/internal/retry"
-	"github.com/Palladium-blockchain/go-kafka-mq/internal/scram"
 )
 
 type ConsumerConfig struct {
@@ -118,108 +117,43 @@ func (c *Consumer) runConsumer(ctx context.Context, consumerGroup sarama.Consume
 
 func WithConsumerRetry(maxAttempts int, initialBackoff, maxBackoff time.Duration) ConsumerOption {
 	return func(cfg *ConsumerConfig) error {
-		if maxAttempts <= 0 {
-			return errors.New("retry max attempts must be > 0")
+		retryCfg, err := makeRetryConfig(maxAttempts, initialBackoff, maxBackoff)
+		if err != nil {
+			return err
 		}
-		if initialBackoff <= 0 {
-			return errors.New("retry initial backoff must be > 0")
-		}
-		if maxBackoff <= 0 {
-			return errors.New("retry max backoff must be > 0")
-		}
-
-		cfg.Retry = RetryConfig{
-			MaxAttempts:    maxAttempts,
-			InitialBackoff: initialBackoff,
-			MaxBackoff:     maxBackoff,
-		}
+		cfg.Retry = retryCfg
 		return nil
 	}
 }
 
 func WithConsumerKafkaVersion(version string) ConsumerOption {
 	return func(cfg *ConsumerConfig) error {
-		if version == "" {
-			return nil
-		}
-
-		kafkaVersion, err := sarama.ParseKafkaVersion(version)
-		if err != nil {
-			return fmt.Errorf("parse kafka version failed: %w", err)
-		}
-
-		cfg.Sarama.Version = kafkaVersion
-		return nil
+		return applyKafkaVersion(cfg.Sarama, version)
 	}
 }
 
 func WithConsumerTLS() ConsumerOption {
 	return func(cfg *ConsumerConfig) error {
-		cfg.Sarama.Net.TLS.Enable = true
-		if cfg.Sarama.Net.TLS.Config == nil {
-			cfg.Sarama.Net.TLS.Config = &tls.Config{
-				MinVersion: tls.VersionTLS12,
-			}
-		} else if cfg.Sarama.Net.TLS.Config.MinVersion == 0 {
-			cfg.Sarama.Net.TLS.Config.MinVersion = tls.VersionTLS12
-		}
+		applyTLS(cfg.Sarama)
 		return nil
 	}
 }
 
 func WithConsumerTLSConfig(tlsCfg *tls.Config) ConsumerOption {
 	return func(cfg *ConsumerConfig) error {
-		if tlsCfg == nil {
-			return errors.New("tls config is nil")
-		}
-		if tlsCfg.MinVersion == 0 {
-			tlsCfg.MinVersion = tls.VersionTLS12
-		}
-
-		cfg.Sarama.Net.TLS.Enable = true
-		cfg.Sarama.Net.TLS.Config = tlsCfg
-		return nil
+		return applyTLSConfig(cfg.Sarama, tlsCfg)
 	}
 }
 
 func WithConsumerSASLPlain(username, password string) ConsumerOption {
 	return func(cfg *ConsumerConfig) error {
-		if username == "" {
-			return errors.New("plain username is empty")
-		}
-		if password == "" {
-			return errors.New("plain password is empty")
-		}
-
-		cfg.Sarama.Net.SASL.Enable = true
-		cfg.Sarama.Net.SASL.User = username
-		cfg.Sarama.Net.SASL.Password = password
-		cfg.Sarama.Net.SASL.Handshake = true
-		cfg.Sarama.Net.SASL.Mechanism = sarama.SASLTypePlaintext
-
-		return nil
+		return applySASLPlain(cfg.Sarama, username, password)
 	}
 }
 
 func WithConsumerSASLSCRAMSHA512(username, password string) ConsumerOption {
 	return func(cfg *ConsumerConfig) error {
-		if username == "" {
-			return errors.New("scram username is empty")
-		}
-		if password == "" {
-			return errors.New("scram password is empty")
-		}
-
-		cfg.Sarama.Net.SASL.Enable = true
-		cfg.Sarama.Net.SASL.User = username
-		cfg.Sarama.Net.SASL.Password = password
-		cfg.Sarama.Net.SASL.Handshake = true
-		cfg.Sarama.Net.SASL.Mechanism = sarama.SASLTypeSCRAMSHA512
-		cfg.Sarama.Net.SASL.SCRAMClientGeneratorFunc = func() sarama.SCRAMClient {
-			return &scram.XDGSCRAMClient{HashGeneratorFcn: scram.SHA512}
-		}
-
-		return nil
+		return applySASLSCRAMSHA512(cfg.Sarama, username, password)
 	}
 }
 
@@ -240,36 +174,10 @@ func validateConsumerConfig(cfg *ConsumerConfig) error {
 	if len(cfg.Brokers) == 0 {
 		return errors.New("brokers is empty")
 	}
-	if cfg.Retry.MaxAttempts <= 0 {
-		return errors.New("retry max attempts must be > 0")
-	}
-	if cfg.Retry.InitialBackoff <= 0 {
-		return errors.New("retry initial backoff must be > 0")
-	}
-	if cfg.Retry.MaxBackoff <= 0 {
-		return errors.New("retry max backoff must be > 0")
+
+	if err := validateRetryConfig(cfg.Retry); err != nil {
+		return err
 	}
 
-	sc := cfg.Sarama
-
-	if sc.Net.SASL.Enable {
-		if sc.Net.SASL.User == "" {
-			return errors.New("sasl user is empty")
-		}
-		if sc.Net.SASL.Password == "" {
-			return errors.New("sasl password is empty")
-		}
-
-		switch sc.Net.SASL.Mechanism {
-		case sarama.SASLTypePlaintext:
-		case sarama.SASLTypeSCRAMSHA256, sarama.SASLTypeSCRAMSHA512:
-			if sc.Net.SASL.SCRAMClientGeneratorFunc == nil {
-				return errors.New("scram client generator is not configured")
-			}
-		default:
-			return fmt.Errorf("unsupported sasl mechanism: %q", sc.Net.SASL.Mechanism)
-		}
-	}
-
-	return nil
+	return validateSASLConfig(cfg.Sarama)
 }
