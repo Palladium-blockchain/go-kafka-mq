@@ -149,7 +149,7 @@ func (p *Producer) Publish(topic string, data []byte) error {
 }
 
 func (p *Producer) Run(ctx context.Context) error {
-	producer, err := retry.WithExpSleep(p.cfg.Retry.MaxAttempts, p.cfg.Retry.InitialBackoff, p.cfg.Retry.MaxBackoff, func() (sarama.SyncProducer, error) {
+	producer, err := retry.WithExpSleepCtx(ctx, p.cfg.Retry.MaxAttempts, p.cfg.Retry.InitialBackoff, p.cfg.Retry.MaxBackoff, func() (sarama.SyncProducer, error) {
 		producer, err := sarama.NewSyncProducer(p.cfg.Brokers, p.cfg.Sarama)
 		if err != nil {
 			return nil, err
@@ -157,7 +157,7 @@ func (p *Producer) Run(ctx context.Context) error {
 		return producer, nil
 	})
 	if err != nil {
-		return fmt.Errorf("failed to create kafka producer: %v", err)
+		return fmt.Errorf("failed to create kafka producer: %w", err)
 	}
 
 	p.mu.Lock()

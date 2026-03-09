@@ -1,7 +1,9 @@
 package kafka_mq
 
 import (
+	"context"
 	"crypto/tls"
+	"errors"
 	"testing"
 	"time"
 
@@ -135,5 +137,23 @@ func TestValidateConsumerConfigUnsupportedMechanism(t *testing.T) {
 	err := validateConsumerConfig(cfg)
 	if err == nil {
 		t.Fatal("expected error, got nil")
+	}
+}
+
+func TestConsumerRunFailFastOnCanceledContext(t *testing.T) {
+	r := NewRouter()
+	_ = r.RegisterHandler("events", func(context.Context, string, []byte) error { return nil })
+
+	c, err := NewConsumer("group", []string{"localhost:9092"}, r)
+	if err != nil {
+		t.Fatalf("unexpected new consumer error: %v", err)
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	err = c.Run(ctx)
+	if !errors.Is(err, context.Canceled) {
+		t.Fatalf("expected context.Canceled, got %v", err)
 	}
 }

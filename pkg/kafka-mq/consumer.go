@@ -74,7 +74,7 @@ func NewConsumer(consumerGroup string, brokers []string, router *Router, opts ..
 
 func (c *Consumer) Run(ctx context.Context) error {
 	// Create consumer group
-	consumerGroup, err := retry.WithExpSleep(c.cfg.Retry.MaxAttempts, c.cfg.Retry.InitialBackoff, c.cfg.Retry.MaxBackoff, func() (sarama.ConsumerGroup, error) {
+	consumerGroup, err := retry.WithExpSleepCtx(ctx, c.cfg.Retry.MaxAttempts, c.cfg.Retry.InitialBackoff, c.cfg.Retry.MaxBackoff, func() (sarama.ConsumerGroup, error) {
 		consumerGroup, err := sarama.NewConsumerGroup(c.cfg.Brokers, c.cfg.ConsumerGroup, c.cfg.Sarama)
 		if err != nil {
 			return nil, err
@@ -82,7 +82,7 @@ func (c *Consumer) Run(ctx context.Context) error {
 		return consumerGroup, nil
 	})
 	if err != nil {
-		return fmt.Errorf("failed to create kafka consumer group: %v", err)
+		return fmt.Errorf("failed to create kafka consumer group: %w", err)
 	}
 	defer func() { _ = consumerGroup.Close() }()
 

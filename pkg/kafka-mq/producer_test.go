@@ -193,7 +193,7 @@ func TestProducerPublishSendError(t *testing.T) {
 	}
 }
 
-func TestProducerRunWithCanceledContextReturnsCreateError(t *testing.T) {
+func TestProducerRunFailFastOnCanceledContext(t *testing.T) {
 	p, err := NewProducer([]string{"127.0.0.1:1"}, WithProducerRetry(1, time.Nanosecond, time.Nanosecond))
 	if err != nil {
 		t.Fatalf("unexpected new producer error: %v", err)
@@ -203,7 +203,7 @@ func TestProducerRunWithCanceledContextReturnsCreateError(t *testing.T) {
 	cancel()
 
 	err = p.Run(ctx)
-	if err == nil {
-		t.Fatal("expected error, got nil")
+	if !errors.Is(err, context.Canceled) {
+		t.Fatalf("expected context.Canceled, got %v", err)
 	}
 }

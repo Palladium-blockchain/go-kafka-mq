@@ -1,6 +1,7 @@
 package retry
 
 import (
+	"context"
 	"errors"
 	"strings"
 	"testing"
@@ -68,5 +69,48 @@ func TestWithExpSleepReturnsWrappedError(t *testing.T) {
 	}
 	if !errors.Is(err, errSentinel) {
 		t.Fatalf("expected wrapped sentinel error, got %v", err)
+	}
+}
+
+func TestWithExpSleepCtxCanceledBeforeStart(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	calls := 0
+	_, err := WithExpSleepCtx(ctx, 3, time.Nanosecond, time.Nanosecond, func() (int, error) {
+		calls++
+		return 0, nil
+	})
+
+	if !errors.Is(err, context.Canceled) {
+		t.Fatalf("expected context.Canceled, got %v", err)
+	}
+	if calls != 0 {
+		t.Fatalf("expected 0 calls, got %d", calls)
+	}
+}
+
+func TestWithExpSleepCtxCanceledDuringBackoff(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	calls := 0
+
+	done := make(chan error, 1)
+	go func() {
+		_, err := WithExpSleepCtx(ctx, 3, 50*time.Millisecond, 50*time.Millisecond, func() (int, error) {
+			calls++
+			return 0, errors.New("temporary")
+		})
+		done <- err
+	}()
+
+	time.Sleep(5 * time.Millisecond)
+	cancel()
+
+	err := <-done
+	if !errors.Is(err, context.Canceled) {
+		t.Fatalf("expected context.Canceled, got %v", err)
+	}
+	if calls != 1 {
+		t.Fatalf("expected 1 call before cancel, got %d", calls)
 	}
 }
