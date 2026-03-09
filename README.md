@@ -12,7 +12,7 @@
 ## Установка
 
 ```bash
-go get github.com/Palladium-blockchain/go-kafka-mq
+go get github.com/Palladium-blockchain/go-kafka-mq/v2
 ```
 
 ## Быстрый старт
@@ -27,7 +27,7 @@ import (
 	"log"
 	"time"
 
-	kafkamq "github.com/Palladium-blockchain/go-kafka-mq/pkg/kafka-mq"
+	kafkamq "github.com/Palladium-blockchain/go-kafka-mq/v2/pkg/kafka-mq"
 )
 
 func main() {
@@ -62,7 +62,7 @@ import (
 	"log"
 	"time"
 
-	kafkamq "github.com/Palladium-blockchain/go-kafka-mq/pkg/kafka-mq"
+	kafkamq "github.com/Palladium-blockchain/go-kafka-mq/v2/pkg/kafka-mq"
 )
 
 func main() {
