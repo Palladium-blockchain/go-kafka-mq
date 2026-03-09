@@ -48,6 +48,25 @@ func TestWithConsumerRetryValidation(t *testing.T) {
 	}
 }
 
+func TestWithConsumerDialTimeout(t *testing.T) {
+	cfg := &ConsumerConfig{Sarama: defaultSaramaConsumerConfig()}
+
+	if err := WithConsumerDialTimeout(3 * time.Second)(cfg); err != nil {
+		t.Fatalf("expected nil error, got %v", err)
+	}
+	if cfg.Sarama.Net.DialTimeout != 3*time.Second {
+		t.Fatalf("expected dial timeout 3s, got %v", cfg.Sarama.Net.DialTimeout)
+	}
+}
+
+func TestWithConsumerDialTimeoutValidation(t *testing.T) {
+	cfg := &ConsumerConfig{Sarama: defaultSaramaConsumerConfig()}
+
+	if err := WithConsumerDialTimeout(0)(cfg); err == nil {
+		t.Fatal("expected dial timeout validation error")
+	}
+}
+
 func TestWithConsumerTLSConfigSetsMinVersion(t *testing.T) {
 	cfg := &ConsumerConfig{Sarama: defaultSaramaConsumerConfig()}
 	tlsCfg := &tls.Config{}

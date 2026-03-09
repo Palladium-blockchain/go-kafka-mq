@@ -39,6 +39,12 @@ func WithProducerKafkaVersion(version string) ProducerOption {
 	}
 }
 
+func WithProducerDialTimeout(timeout time.Duration) ProducerOption {
+	return func(cfg *ProducerConfig) error {
+		return applyDialTimeout(cfg.Sarama, timeout)
+	}
+}
+
 func WithProducerTLS() ProducerOption {
 	return func(cfg *ProducerConfig) error {
 		applyTLS(cfg.Sarama)

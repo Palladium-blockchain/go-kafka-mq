@@ -132,6 +132,12 @@ func WithConsumerKafkaVersion(version string) ConsumerOption {
 	}
 }
 
+func WithConsumerDialTimeout(timeout time.Duration) ConsumerOption {
+	return func(cfg *ConsumerConfig) error {
+		return applyDialTimeout(cfg.Sarama, timeout)
+	}
+}
+
 func WithConsumerTLS() ConsumerOption {
 	return func(cfg *ConsumerConfig) error {
 		applyTLS(cfg.Sarama)

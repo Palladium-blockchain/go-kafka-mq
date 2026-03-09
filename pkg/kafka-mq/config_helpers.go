@@ -66,6 +66,15 @@ func applyTLSConfig(sc *sarama.Config, tlsCfg *tls.Config) error {
 	return nil
 }
 
+func applyDialTimeout(sc *sarama.Config, timeout time.Duration) error {
+	if timeout <= 0 {
+		return errors.New("dial timeout must be > 0")
+	}
+
+	sc.Net.DialTimeout = timeout
+	return nil
+}
+
 func applySASLPlain(sc *sarama.Config, username, password string) error {
 	if username == "" {
 		return errors.New("plain username is empty")
