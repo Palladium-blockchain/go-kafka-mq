@@ -116,15 +116,6 @@ func WithProducerSASLSCRAMSHA512(username, password string) ProducerOption {
 			return errors.New("scram password is empty")
 		}
 
-		cfg.Sarama.Net.TLS.Enable = true
-		if cfg.Sarama.Net.TLS.Config == nil {
-			cfg.Sarama.Net.TLS.Config = &tls.Config{
-				MinVersion: tls.VersionTLS12,
-			}
-		} else if cfg.Sarama.Net.TLS.Config.MinVersion == 0 {
-			cfg.Sarama.Net.TLS.Config.MinVersion = tls.VersionTLS12
-		}
-
 		cfg.Sarama.Net.SASL.Enable = true
 		cfg.Sarama.Net.SASL.User = username
 		cfg.Sarama.Net.SASL.Password = password
@@ -217,9 +208,6 @@ func validateProducerConfig(cfg *ProducerConfig) error {
 		switch sc.Net.SASL.Mechanism {
 		case sarama.SASLTypePlaintext:
 		case sarama.SASLTypeSCRAMSHA256, sarama.SASLTypeSCRAMSHA512:
-			if !sc.Net.TLS.Enable {
-				return errors.New("tls must be enabled for SCRAM")
-			}
 			if sc.Net.SASL.SCRAMClientGeneratorFunc == nil {
 				return errors.New("scram client generator is not configured")
 			}
